@@ -1,0 +1,11 @@
+{
+  "textures": {
+    "particle": "stone",
+    "down": "stone",
+    "up": "stone",
+    "north": "stone",
+    "south": "stone",
+    "west": "stone",
+    "east": "stone"
+  }
+}

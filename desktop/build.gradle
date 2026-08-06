@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+// 1. 配置主类，告诉 Gradle 程序从哪里开始运行
+application {
+    // mainClass 是你的 DesktopLauncher 类的完整路径
+    mainClass = 'org.DesktopLauncher'
+}
+
+// 2. 添加项目依赖
+dependencies {
+    // 依赖 core 模块，这样 desktop 模块就能使用 core 里的代码
+    implementation project(':core')
+
+    // 添加 LibGDX 的桌面后端依赖
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:1.11.0"
+    // 添加平台特定的原生库（用于创建窗口）
+    implementation "com.badlogicgames.gdx:gdx-platform:1.11.0:natives-desktop"
+}
+
+// 3. 配置资源目录（可选，但推荐）
+// 告诉 Gradle 把 core 模块的 resources 文件夹也包含进来
+sourceSets.main.resources.srcDirs += project(':core').file('src/main/resources')

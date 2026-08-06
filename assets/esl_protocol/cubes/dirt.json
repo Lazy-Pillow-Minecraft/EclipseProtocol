@@ -1,0 +1,11 @@
+{
+  "textures": {
+    "particle": "dirt",
+    "down": "dirt",
+    "up": "dirt",
+    "north": "dirt",
+    "south": "dirt",
+    "west": "dirt",
+    "east": "dirt"
+  }
+}

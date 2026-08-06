@@ -1,0 +1,15 @@
+{
+  "textures": {
+    "particle": "dirt",
+    "down": "dirt",
+    "up": [
+      {"weight": 8, "path": "grass_top_a"},
+      {"weight": 1, "path": "grass_top_b"},
+      {"weight": 1, "path": "grass_top_c"}
+    ],
+    "north": "grass_side",
+    "south": "grass_side",
+    "west": "grass_side",
+    "east": "grass_side"
+  }
+}
