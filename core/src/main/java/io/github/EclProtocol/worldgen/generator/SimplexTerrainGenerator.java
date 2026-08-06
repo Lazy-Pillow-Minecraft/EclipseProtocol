@@ -9,13 +9,15 @@ import java.util.Random;
 public class SimplexTerrainGenerator implements WorldGenerator {
 
     private long seed;
-    private final double baseFrequency = 0.007; // 频率：越小地形越平缓，越大越破碎
-    private final int baseHeight = 60;     // 基准高度（海平面）
-    private final int amplitude = 30;      // 振幅：地形起伏的高度差
+    private final double baseFrequency = 0.007;
+    private final int baseHeight = 60;
+    private final int amplitude = 40;
     private final int octaves = 6;
+    private final int searchRadius = 3;
+    private final int blendRange = 16; // 混合区域的宽度
 
-    private final int erosionIterations = 2000000; // 模拟多少个雨滴 (越多越细致，但越慢)
-    private final float erosionStrength = 5f;  // 侵蚀强度
+    private final int erosionIterations = 50000; // 模拟多少个雨滴
+    private final float erosionStrength = 1f;  // 侵蚀强度
 
     public SimplexTerrainGenerator(long seed) {
         this.seed = seed;
@@ -26,6 +28,7 @@ public class SimplexTerrainGenerator implements WorldGenerator {
         int width = world.getWorldWidth();
 
         float[][] heightMap = new float[width][width];
+        int[][] visitCount = new int[width][width];
 
         for (int x = 0; x < width; x++) {
             for (int z = 0; z < width; z++) {
@@ -35,7 +38,16 @@ public class SimplexTerrainGenerator implements WorldGenerator {
             }
         }
 
-        applyErosion(heightMap, width, erosionIterations);
+        interpolateEdges(heightMap, width);
+
+        applyErosion(heightMap, width, erosionIterations, visitCount);
+
+        int maxVisits = 1;
+        for (int x = 0; x < width; x++) {
+            for (int z = 0; z < width; z++) {
+                maxVisits = Math.max(maxVisits, visitCount[x][z]);
+            }
+        }
 
         for (int x = 0; x < width; x++) {
             for (int z = 0; z < width; z++) {
@@ -66,11 +78,14 @@ public class SimplexTerrainGenerator implements WorldGenerator {
                     }
                 }
 
-                if (maxDiff > 2.0f) {
+                if (maxDiff > 2.5f) {
                     isSteep = true;
                 }
 
-                if (isSteep) {
+                float visitDensity = (float) visitCount[x][z] / maxVisits;
+                boolean isRiverBed = visitDensity > 0f;
+
+                if (isSteep && isRiverBed) {
                     world.setBlock(x, height, z, Blocks.STONE.getDefaultState());
                 } else {
                     world.setBlock(x, height, z, Blocks.GRASS_BLOCK.getDefaultState());
@@ -82,29 +97,89 @@ public class SimplexTerrainGenerator implements WorldGenerator {
         }
     }
 
+    private void interpolateEdges(float[][] map, int width) {
+        for (int i = 0; i < blendRange; i++) {
+            float weight = (float) i / blendRange;
+
+            @SuppressWarnings("RedundantLocalVariable")
+            int xLeft = i;
+            int xRight = width - 1 - i;
+            @SuppressWarnings("RedundantLocalVariable")
+            int zTop = i;
+            int zBottom = width - 1 - i;
+
+            int baseOffset = blendRange;
+            @SuppressWarnings("RedundantLocalVariable")
+            int xLeftBase = baseOffset;
+            int xRightBase = width - 1 - baseOffset;
+            @SuppressWarnings("RedundantLocalVariable")
+            int zTopBase = baseOffset;
+            int zBottomBase = width - 1 - baseOffset;
+
+            for (int z = 0; z < width; z++) {
+                float leftBase = map[xLeftBase][z];
+                float rightBase = map[xRightBase][z];
+                float stitchHeight = (leftBase + rightBase) / 2.0f;
+
+                float rawLeft = map[xLeft][z];
+                float rawRight = map[xRight][z];
+
+                map[xLeft][z] = stitchHeight * (1 - weight) + rawLeft * weight;
+                map[xRight][z] = stitchHeight * (1 - weight) + rawRight * weight;
+            }
+
+            for (int x = 0; x < width; x++) {
+                float topBase = map[x][zTopBase];
+                float bottomBase = map[x][zBottomBase];
+                float stitchHeight = (topBase + bottomBase) / 2.0f;
+
+                float rawTop = map[x][zTop];
+                float rawBottom = map[x][zBottom];
+
+                map[x][zTop] = stitchHeight * (1 - weight) + rawTop * weight;
+                map[x][zBottom] = stitchHeight * (1 - weight) + rawBottom * weight;
+            }
+        }
+
+        float cornerAvg = (map[blendRange][blendRange] +
+            map[blendRange][width - 1 - blendRange] +
+            map[width - 1 - blendRange][blendRange] +
+            map[width - 1 - blendRange][width - 1 - blendRange]) / 4.0f;
+
+        map[0][0] = cornerAvg;
+        map[0][width - 1] = cornerAvg;
+        map[width - 1][0] = cornerAvg;
+        map[width - 1][width - 1] = cornerAvg;
+    }
+
     @SuppressWarnings("SameParameterValue")
-    private void applyErosion(float[][] map, int width, int iterations) {
+    private void applyErosion(float[][] map, int width, int iterations, int[][] visitCount) {
         Random random = new Random(seed);
+        Random deterministicRandom = new Random();
 
         for (int i = 0; i < iterations; i++) {
+            deterministicRandom.setSeed(seed + i);
             int x = random.nextInt(width);
             int z = random.nextInt(width);
 
             float sediment = 0;
 
             for (int j = 0; j < 100; j++) {
+                visitCount[x][z]++;
                 float heightDiffX = 0;
                 float heightDiffZ = 0;
                 float currentHeight = map[x][z];
 
-                for (int dx = -1; dx <= 1; dx++) {
-                    for (int dz = -1; dz <= 1; dz++) {
+                for (int dx = -searchRadius; dx <= searchRadius; dx++) {
+                    for (int dz = -searchRadius; dz <= searchRadius; dz++) {
                         if (dx == 0 && dz == 0) continue;
                         int nx = (x + dx + width) % width;
                         int nz = (z + dz + width) % width;
 
                         float diff = map[nx][nz] - currentHeight;
-                        float weight = (dx * dx + dz * dz) == 2 ? 0.707f : 1.0f;
+
+                        float distance = (float) Math.sqrt(dx * dx + dz * dz);
+                        float weight = 1.0f / distance;
 
                         if (diff < 0) {
                             heightDiffX += dx * diff * weight;
@@ -112,6 +187,10 @@ public class SimplexTerrainGenerator implements WorldGenerator {
                         }
                     }
                 }
+
+                float inertia = 0.2f;
+                heightDiffX += (deterministicRandom.nextFloat() - 0.5f) * inertia;
+                heightDiffZ += (deterministicRandom.nextFloat() - 0.5f) * inertia;
 
                 if (heightDiffX == 0 && heightDiffZ == 0) {
                     break;

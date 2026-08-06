@@ -19,7 +19,7 @@ import io.github.EclProtocol.chunks.ChunkColumn;
 import io.github.EclProtocol.client.ChunkMeshBuilder;
 import io.github.EclProtocol.util.math.Int2Pos;
 import io.github.EclProtocol.worldgen.World;
-import io.github.EclProtocol.worldgen.generator.FlatTerrainGenerator;
+import io.github.EclProtocol.worldgen.generator.SimplexTerrainGenerator;
 import io.github.EclProtocol.worldgen.generator.WorldGenerator;
 
 import java.util.ArrayList;
@@ -81,7 +81,7 @@ public class Main extends ApplicationAdapter implements InputProcessor {
                     environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -2.5f, 1.3f));
                     modelBatch = new ModelBatch();
 
-                    WorldGenerator TerrainGen = new FlatTerrainGenerator(12345L);
+                    WorldGenerator TerrainGen = new SimplexTerrainGenerator(12345L);
                     world = new World(32, 10, 12345L, TerrainGen);
                     meshBuilder = new ChunkMeshBuilder(world);
                     chunkInstances = new ArrayList<>();
