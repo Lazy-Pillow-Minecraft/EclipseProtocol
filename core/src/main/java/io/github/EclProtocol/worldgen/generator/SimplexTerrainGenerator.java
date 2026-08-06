@@ -8,19 +8,44 @@ import java.util.Random;
 @SuppressWarnings({"unused", "FieldCanBeLocal"})
 public class SimplexTerrainGenerator implements WorldGenerator {
 
-    private long seed;
     private final double baseFrequency = 0.007;
     private final int baseHeight = 60;
-    private final int amplitude = 40;
+    private final int amplitude = 20;
     private final int octaves = 6;
     private final int searchRadius = 3;
     private final int blendRange = 16; // 混合区域的宽度
+    private final int erosionIterations = 500000; // 模拟多少个雨滴
+    private final float erosionStrength = 3f;  // 侵蚀强度
+    private final int[] perm = new int[512];
+    private long seed;
 
-    private final int erosionIterations = 50000; // 模拟多少个雨滴
-    private final float erosionStrength = 1f;  // 侵蚀强度
+    {
+        for (int i = 0; i < 256; i++) {
+            perm[i] = i;
+        }
+        Random rand = new Random(seed);
+        for (int i = 0; i < 256; i++) {
+            int j = rand.nextInt(256);
+            int temp = perm[i];
+            perm[i] = perm[j];
+            perm[j] = temp;
+            perm[i + 256] = perm[i];
+        }
+    }
 
     public SimplexTerrainGenerator(long seed) {
         this.seed = seed;
+    }
+
+    private static float getAmpFactor(float dx, float dz, float radius) {
+        float dist = (float) Math.sqrt(dx * dx + dz * dz);
+
+        float ampFactor = 1.0f;
+
+        if (dist < radius) {
+            ampFactor *= (3 - 2 * (dist / radius));
+        }
+        return ampFactor;
     }
 
     @Override
@@ -30,11 +55,31 @@ public class SimplexTerrainGenerator implements WorldGenerator {
         float[][] heightMap = new float[width][width];
         int[][] visitCount = new int[width][width];
 
+        Random random = new Random(seed + 59160153);
+
+        float radius = width / 3.0f;
+        float centerX = random.nextInt(0, width);
+        float centerZ = random.nextInt(0, width);
+
         for (int x = 0; x < width; x++) {
+            int x_2 = x * x;
             for (int z = 0; z < width; z++) {
+                int z_2 = z * z;
+
+                float dx = x - centerX;
+                float dz = z - centerZ;
+
+                if (dx > width / 2.0f) dx -= width;
+                if (dx < -width / 2.0f) dx += width;
+                if (dz > width / 2.0f) dz -= width;
+                if (dz < -width / 2.0f) dz += width;
+
+                float ampFactor = getAmpFactor(dx, dz, radius);
+
                 double noiseValue = octaveNoise(x * baseFrequency, z * baseFrequency, octaves);
                 noiseValue = (noiseValue + 1.0) / 2.0;
-                heightMap[x][z] = (float) (baseHeight + noiseValue * amplitude * 2);
+
+                heightMap[x][z] = (float) (baseHeight + noiseValue * amplitude * ampFactor * 2) + (ampFactor - 1) * 15;
             }
         }
 
@@ -264,21 +309,6 @@ public class SimplexTerrainGenerator implements WorldGenerator {
         return total;
     }
 
-    private final int[] perm = new int[512];
-    {
-        for (int i = 0; i < 256; i++) {
-            perm[i] = i;
-        }
-        Random rand = new Random(seed);
-        for (int i = 0; i < 256; i++) {
-            int j = rand.nextInt(256);
-            int temp = perm[i];
-            perm[i] = perm[j];
-            perm[j] = temp;
-            perm[i + 256] = perm[i];
-        }
-    }
-
     private double noise(double x, double z) {
         int X = (int) Math.floor(x) & 255;
         int Z = (int) Math.floor(z) & 255;
@@ -289,15 +319,15 @@ public class SimplexTerrainGenerator implements WorldGenerator {
         double u = fade(x);
         double v = fade(z);
 
-        int A  = perm[X] + Z;
+        int A = perm[X] + Z;
         int AA = perm[A];
         int AB = perm[A + 1];
-        int B  = perm[X + 1] + Z;
+        int B = perm[X + 1] + Z;
         int BA = perm[B];
         int BB = perm[B + 1];
 
         return lerp(v,
-            lerp(u, grad(perm[AA], x, z),     grad(perm[BA], x - 1, z)),
+            lerp(u, grad(perm[AA], x, z), grad(perm[BA], x - 1, z)),
             lerp(u, grad(perm[AB], x, z - 1), grad(perm[BB], x - 1, z - 1))
         );
     }

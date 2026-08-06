@@ -9,6 +9,8 @@ import io.github.EclProtocol.worldgen.generator.WorldGenerator;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.github.EclProtocol.util.math.Mth.loopCoord;
+
 @SuppressWarnings("unused")
 public class World {
     private final int worldSize;
@@ -16,6 +18,7 @@ public class World {
     private final Map<Int2Pos, ChunkColumn> chunkColumnMap = new HashMap<>();
     private final long seed;
     private final long worldTime;
+
     public World(int worldSize, int worldHeight, long seed, WorldGenerator generator) {
         this.worldSize = worldSize;
         this.worldHeight = worldHeight;
@@ -80,9 +83,5 @@ public class World {
         y = loopCoord(y, getWorldHeight());
         z = loopCoord(z, getWorldWidth());
         return chunkColumnMap.get(new Int2Pos(x / 16, z / 16)).getChunk(y / 16);
-    }
-
-    private int loopCoord(int value, int range) {
-        return (value % range + range) % range;
     }
 }

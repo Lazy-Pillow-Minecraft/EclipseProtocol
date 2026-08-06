@@ -10,8 +10,9 @@ import java.util.List;
 import java.util.Map;
 
 public class Chunk {
+    public static final int CHUNK_SIZE = 16;
     private final BlockState AIR = Blocks.AIR.getDefaultState();
-    private final short[] blocks = new short[16 * 16 * 16];
+    private final short[] blocks = new short[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
     private final List<BlockState> blockList = new ArrayList<>();
     private final Map<BlockState, Integer> stateMap = new HashMap<>();
     private final Int3Pos chunkPos;
@@ -21,10 +22,10 @@ public class Chunk {
     }
 
     private int getIndex(int x, int y, int z) {
-        int lx = x - 16 * chunkPos.x;
-        int ly = y - 16 * chunkPos.y;
-        int lz = z - 16 * chunkPos.z;
-        if (lx < 0 || lx >= 16 || ly < 0 || ly >= 16 || lz < 0 || lz >= 16) {
+        int lx = x - CHUNK_SIZE * chunkPos.x;
+        int ly = y - CHUNK_SIZE * chunkPos.y;
+        int lz = z - CHUNK_SIZE * chunkPos.z;
+        if (lx < 0 || lx >= CHUNK_SIZE || ly < 0 || ly >= CHUNK_SIZE || lz < 0 || lz >= CHUNK_SIZE) {
             return -1;
         }
         return lx + (ly << 4) + (lz << 8);
