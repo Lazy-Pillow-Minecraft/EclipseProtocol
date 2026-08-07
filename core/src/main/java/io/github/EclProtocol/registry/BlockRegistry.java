@@ -17,6 +17,7 @@ public class BlockRegistry {
      * @param block 方块对象
      * @return 注册的方块对象
      */
+
     public static <T extends Block> T register(GameID id, T block) {
         if (REGISTRY_MAP.containsKey(id)) {
             throw new IllegalArgumentException("冲突！方块名字 " + id + " 已经被注册过了！");
@@ -28,6 +29,10 @@ public class BlockRegistry {
         REGISTRY_MAP.put(id, block);
         REGISTRY_LIST.add(block);
         return block;
+    }
+
+    public static <T extends Block> T registerSelf(String id, T block) {
+        return register(GameID.createID(id), block);
     }
 
     public static Block getBlock(GameID id) {

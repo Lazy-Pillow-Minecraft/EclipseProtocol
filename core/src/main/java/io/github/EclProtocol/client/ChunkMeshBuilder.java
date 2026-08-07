@@ -33,8 +33,19 @@ public class ChunkMeshBuilder {
         this.world = world;
         this.atlas = new TextureAtlas(ATLAS_PATH);
     }
+    public interface OverlayResolver {
+        /**
+         * @param worldX 世界坐標 X
+         * @param worldY 世界坐標 Y
+         * @param worldZ 世界坐標 Z
+         * @param dir 當前面方向
+         * @return Overlay 紋理的名稱 (例如 "overlay/overlay_a_a")，如果返回 null 則表示不疊加
+         */
+        String resolveOverlay(int worldX, int worldY, int worldZ, Direction6 dir);
+    }
 
-    public ChunkMeshData buildChunkMeshData(io.github.EclProtocol.chunks.Chunk chunk) {
+
+    public ChunkMeshData buildChunkMeshData(io.github.EclProtocol.chunks.Chunk chunk, OverlayResolver resolver) {
         ChunkMeshData data = new ChunkMeshData();
         data.chunkPos = new Int2Pos(chunk.getChunkPos().x, chunk.getChunkPos().z);
 
@@ -56,9 +67,17 @@ public class ChunkMeshBuilder {
                     CubeModelDefinition modelDef = CubeModelLoader.getModel(blockName);
                     if (modelDef == null) continue;
 
-                    // UP
                     if (isFaceVisible(worldX, worldY + 1, worldZ)) {
-                        addFaceToData(data, worldX, worldY, worldZ, Direction6.UP, getTextureName(modelDef.up, worldX, worldY, worldZ));
+                        String baseTex = getTextureName(modelDef.up, worldX, worldY, worldZ);
+
+                        String overlayTex = (resolver != null) ? resolver.resolveOverlay(worldX, worldY, worldZ, Direction6.UP) : null;
+
+                        if (overlayTex != null) {
+                            String key = baseTex + "###" + overlayTex;
+                            addFaceToBuffer(data.overlayBuffers, key, worldX, worldY, worldZ, Direction6.UP);
+                        } else {
+                            addFaceToData(data, worldX, worldY, worldZ, Direction6.UP, baseTex);
+                        }
                     }
                     // DOWN
                     if (isFaceVisible(worldX, worldY - 1, worldZ)) {
@@ -86,33 +105,35 @@ public class ChunkMeshBuilder {
         return data;
     }
 
+    @SuppressWarnings("SameParameterValue")
+    private void addFaceToBuffer(Map<String, Array<float[]>> targetMap, String key, int worldX, int worldY, int worldZ, Direction6 dir) {
+        Array<float[]> buffer = targetMap.get(key);
+        if (buffer == null) {
+            buffer = new Array<>();
+            targetMap.put(key, buffer);
+        }
+        buffer.add(calculateVertices(worldX, worldY, worldZ, dir));
+    }
+
     public ModelInstance createModelFromData(ChunkMeshData data) {
         modelBuilder.begin();
         modelBuilder.node();
 
         for (Map.Entry<String, Array<float[]>> entry : data.buffers.entrySet()) {
-            Array<float[]> rects = entry.getValue();
-            if (rects.size == 0) continue;
+            createMeshPart(entry.getKey(), entry.getValue(), null);
+        }
 
-            TextureAtlas.AtlasRegion region = atlas.findRegion(entry.getKey());
-            if (region == null) region = atlas.findRegion("stone");
+        for (Map.Entry<String, Array<float[]>> entry : data.overlayBuffers.entrySet()) {
+            String key = entry.getKey();
 
-            Material mat = new Material(TextureAttribute.createDiffuse(region));
-            MeshPartBuilder partBuilder = modelBuilder.part(
-                entry.getKey(),
-                GL20.GL_TRIANGLES,
-                com.badlogic.gdx.graphics.VertexAttributes.Usage.Position | com.badlogic.gdx.graphics.VertexAttributes.Usage.Normal | com.badlogic.gdx.graphics.VertexAttributes.Usage.TextureCoordinates,
-                mat
-            );
+            if (key.contains("###")) {
+                String[] parts = key.split("###");
+                String baseTexName = parts[0];
+                String overlayTexName = parts[1];
 
-            for (float[] rectData : rects) {
-                partBuilder.rect(
-                    rectData[0], rectData[1], rectData[2],
-                    rectData[3], rectData[4], rectData[5],
-                    rectData[6], rectData[7], rectData[8],
-                    rectData[9], rectData[10], rectData[11],
-                    rectData[12], rectData[13], rectData[14]
-                );
+                createMeshPart(key, entry.getValue(), new String[]{baseTexName, overlayTexName});
+            } else {
+                createMeshPart(key, entry.getValue(), null);
             }
         }
 
@@ -121,6 +142,52 @@ public class ChunkMeshBuilder {
         instance.userData = data.chunkPos;
         return instance;
     }
+
+    private void createMeshPart(String partID, Array<float[]> rects, String[] textures) {
+        if (rects.size == 0) return;
+
+        TextureAtlas.AtlasRegion baseRegion;
+        Material mat = new Material();
+
+        if (textures == null) {
+            baseRegion = atlas.findRegion(partID);
+            if (baseRegion == null) baseRegion = atlas.findRegion("stone");
+            mat.set(TextureAttribute.createDiffuse(baseRegion));
+        } else {
+            String baseTexName = textures[0];
+            String overlayTexName = textures[1];
+
+            baseRegion = atlas.findRegion(baseTexName);
+            if (baseRegion == null) baseRegion = atlas.findRegion("stone");
+
+            TextureAtlas.AtlasRegion overlayRegion = atlas.findRegion(overlayTexName);
+            mat.set(TextureAttribute.createDiffuse(baseRegion));
+            if (overlayRegion != null) {
+                mat.set(new TextureAttribute(TextureAttribute.Emissive, overlayRegion));
+            }
+        }
+
+        MeshPartBuilder partBuilder = modelBuilder.part(
+            partID,
+            GL20.GL_TRIANGLES,
+            com.badlogic.gdx.graphics.VertexAttributes.Usage.Position |
+                com.badlogic.gdx.graphics.VertexAttributes.Usage.Normal |
+                com.badlogic.gdx.graphics.VertexAttributes.Usage.TextureCoordinates,
+            mat
+        );
+
+        for (int i = 0; i < rects.size; i++) {
+            float[] rectData = rects.get(i);
+            partBuilder.rect(
+                rectData[0], rectData[1], rectData[2],
+                rectData[3], rectData[4], rectData[5],
+                rectData[6], rectData[7], rectData[8],
+                rectData[9], rectData[10], rectData[11],
+                rectData[12], rectData[13], rectData[14]
+            );
+        }
+    }
+
 
     private boolean isFaceVisible(int worldX, int worldY, int worldZ) {
         BlockState neighbor = world.getBlock(worldX, worldY, worldZ);
@@ -198,5 +265,6 @@ public class ChunkMeshBuilder {
     public static class ChunkMeshData {
         public Int2Pos chunkPos;
         public Map<String, Array<float[]>> buffers = new HashMap<>();
+        public Map<String, Array<float[]>> overlayBuffers = new HashMap<>();
     }
 }

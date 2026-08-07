@@ -17,6 +17,9 @@ import com.badlogic.gdx.math.Vector3;
 import io.github.EclProtocol.chunks.Chunk;
 import io.github.EclProtocol.chunks.ChunkColumn;
 import io.github.EclProtocol.client.ChunkMeshBuilder;
+import io.github.EclProtocol.client.MainShader;
+import io.github.EclProtocol.util.OverlayStrategy;
+import io.github.EclProtocol.util.math.Direction6;
 import io.github.EclProtocol.util.math.Int2Pos;
 import io.github.EclProtocol.util.math.Mth;
 import io.github.EclProtocol.worldgen.World;
@@ -30,7 +33,7 @@ import java.util.Set;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class Main extends ApplicationAdapter implements InputProcessor {
-    private final int CHUNKS_PER_FRAME = 1000;
+    private final int CHUNKS_PER_FRAME = 750;
     private final int renderDistance = 16;
 
     private final List<ChunkColumnDist> candidateColumns = new ArrayList<>();
@@ -93,7 +96,12 @@ public class Main extends ApplicationAdapter implements InputProcessor {
                         Chunk chunk = columnToBake.getChunk(cy);
                         if (chunk != null) {
                             if (meshBuilder != null) {
-                                ChunkMeshBuilder.ChunkMeshData data = meshBuilder.buildChunkMeshData(chunk);
+                                ChunkMeshBuilder.ChunkMeshData data = meshBuilder.buildChunkMeshData(chunk, (x, y, z, dir) -> {
+                                    if (dir == Direction6.UP) {
+                                        return OverlayStrategy.upOverlayShade(world, x, y, z);
+                                    }
+                                    return null;
+                                });
                                 if (data != null) {
                                     synchronized (bakedResults) {
                                         bakedResults.add(data);
@@ -119,7 +127,7 @@ public class Main extends ApplicationAdapter implements InputProcessor {
                     environment = new Environment();
                     environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.5f, 0.6f, 0.8f, 1f));
                     environment.add(new DirectionalLight().set(1.0f, 0.8f, 0.65f, -1f, -2.5f, 1.3f));
-                    modelBatch = new ModelBatch();
+                    modelBatch = new ModelBatch(new MainShaderProvider());
                     WorldGenerator TerrainGen = new SimplexTerrainGenerator(12345L);
                     world = new World(128, 15, 12345L, TerrainGen);
                     meshBuilder = new ChunkMeshBuilder(world);
@@ -435,6 +443,13 @@ public class Main extends ApplicationAdapter implements InputProcessor {
         public ChunkColumnDist(Int2Pos pos, float distSq) {
             this.pos = pos;
             this.distSq = distSq;
+        }
+    }
+
+    private static class MainShaderProvider extends com.badlogic.gdx.graphics.g3d.utils.BaseShaderProvider {
+        @Override
+        protected com.badlogic.gdx.graphics.g3d.Shader createShader(com.badlogic.gdx.graphics.g3d.Renderable renderable) {
+            return new MainShader(renderable);
         }
     }
 }

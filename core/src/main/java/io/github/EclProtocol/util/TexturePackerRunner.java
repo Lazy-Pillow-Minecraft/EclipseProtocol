@@ -3,13 +3,14 @@ package io.github.EclProtocol.util;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.tools.texturepacker.TexturePacker;
+import io.github.EclProtocol.config.Constants;
 
 public class TexturePackerRunner {
 
     public static void main(String[] args) {
-        String inputDir = "assets/esl_protocol/textures/block";
+        String inputDir = "assets/" + Constants.NAME_SPACE + "/textures/block";
 
-        String outputDir = "assets/esl_protocol/textures/atlas";
+        String outputDir = "assets/" + Constants.NAME_SPACE + "/textures/atlas";
         FileHandle outputDirHandle = new FileHandle(outputDir);
         if (outputDirHandle.exists()) {
             outputDirHandle.deleteDirectory(); // 删除整个目录
@@ -24,7 +25,7 @@ public class TexturePackerRunner {
         settings.duplicatePadding = true;
         settings.filterMin = Texture.TextureFilter.Nearest;
         settings.filterMag = Texture.TextureFilter.Nearest;
-        settings.combineSubdirectories = false;
+        settings.combineSubdirectories = true;
 
         TexturePacker.process(settings, inputDir, outputDir, "blocks.pack");
 
