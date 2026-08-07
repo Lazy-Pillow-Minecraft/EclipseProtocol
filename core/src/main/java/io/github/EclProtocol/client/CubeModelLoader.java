@@ -5,6 +5,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 import io.github.EclProtocol.client.model.CubeModelDefinition;
+import io.github.EclProtocol.util.GameID;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,15 +13,16 @@ import java.util.List;
 import java.util.Map;
 
 public class CubeModelLoader {
-    private static final Map<String, CubeModelDefinition> cache = new HashMap<>();
-    private static final String JSON_BASE_PATH = "assets/esl_protocol/cubes/";
+    private static final Map<GameID, CubeModelDefinition> cache = new HashMap<>();
+    private static final String JSON_BASE_PATH_1 = "assets/";
+    private static final String JSON_BASE_PATH_2 = "/cubes/";
 
-    public static CubeModelDefinition getModel(String blockId) {
+    public static CubeModelDefinition getModel(GameID blockId) {
         if (cache.containsKey(blockId)) {
             return cache.get(blockId);
         }
 
-        String jsonPath = JSON_BASE_PATH + blockId + ".json";
+        String jsonPath = JSON_BASE_PATH_1 + blockId.getNameSpace() + JSON_BASE_PATH_2 + blockId.getId() + ".json";
         FileHandle file = Gdx.files.internal(jsonPath);
 
         if (!file.exists()) {

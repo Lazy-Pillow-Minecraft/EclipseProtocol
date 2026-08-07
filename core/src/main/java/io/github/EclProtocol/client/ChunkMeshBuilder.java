@@ -12,7 +12,9 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.JsonValue;
 import io.github.EclProtocol.blocks.BlockState;
 import io.github.EclProtocol.client.model.CubeModelDefinition;
+import io.github.EclProtocol.config.Constants;
 import io.github.EclProtocol.init.Blocks;
+import io.github.EclProtocol.util.GameID;
 import io.github.EclProtocol.util.math.Direction6;
 import io.github.EclProtocol.util.math.Int2Pos;
 import io.github.EclProtocol.worldgen.World;
@@ -22,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ChunkMeshBuilder {
-    private static final String ATLAS_PATH = "assets/esl_protocol/textures/atlas/blocks.pack.atlas";
+    private static final String ATLAS_PATH = "assets/" + Constants.NAME_SPACE + "/textures/atlas/blocks.pack.atlas";
     private final ModelBuilder modelBuilder = new ModelBuilder();
     private final TextureAtlas atlas;
     private final World world;
@@ -50,7 +52,7 @@ public class ChunkMeshBuilder {
                     BlockState state = chunk.getBlock(worldX, worldY, worldZ);
                     if (state == Blocks.AIR.getDefaultState() || state == null) continue;
 
-                    String blockName = state.getBlock().getRegistryName();
+                    GameID blockName = state.getBlock().getRegistryName();
                     CubeModelDefinition modelDef = CubeModelLoader.getModel(blockName);
                     if (modelDef == null) continue;
 

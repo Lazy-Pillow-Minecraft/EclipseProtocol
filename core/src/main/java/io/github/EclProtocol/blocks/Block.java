@@ -1,6 +1,7 @@
 package io.github.EclProtocol.blocks;
 
 import io.github.EclProtocol.blocks.property.IProperty;
+import io.github.EclProtocol.util.GameID;
 
 import java.util.*;
 
@@ -15,7 +16,7 @@ public class Block {
     private final List<IProperty<?>> properties = new ArrayList<>();
     private final BlockRenderType blockRenderType;
 
-    private String registryName = null;
+    private GameID registryName = null;
     private int intId = -1;
 
     public Block(boolean ifLightTransmission, int hardness, int light, int lightAttenuation){
@@ -80,7 +81,7 @@ public class Block {
         return property;
     }
 
-    public void setRegistryId(String name, int id) {
+    public void setRegistryId(GameID name, int id) {
         if (this.registryName != null) {
             throw new IllegalStateException("方块 " + this + " 已经注册过了，不能重复注册！");
         }
@@ -89,7 +90,7 @@ public class Block {
     }
 
     public BlockState getState(Map<IProperty<?>, Comparable<?>> properties) {
-        return stateCache.computeIfAbsent(properties, p -> new BlockState(this, new HashMap<>(p)));
+        return stateCache.computeIfAbsent(properties, p -> BlockState.of(this, new HashMap<>(p)));
     }
 
     public BlockState getDefaultState() {
@@ -100,8 +101,12 @@ public class Block {
     }
 
     // Getter
-    public String getRegistryName() {
+    public GameID getRegistryName() {
         return registryName;
+    }
+
+    public String getStringName() {
+        return (registryName.getNameSpace() + registryName.getId());
     }
 
     public int getIntId() {
