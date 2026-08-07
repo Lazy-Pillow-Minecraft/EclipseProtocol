@@ -2,5 +2,6 @@ package io.github.EclProtocol.blocks;
 
 @SuppressWarnings("unused")
 public enum BlockRenderType {
-    Model, Cube
+    Cube,
+    Model_Obj
 }

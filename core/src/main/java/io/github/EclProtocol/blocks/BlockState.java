@@ -13,18 +13,15 @@ public class BlockState {
     private final Block block;
     private final Map<IProperty<?>, Comparable<?>> storage;
 
-    // 构造函数改为 private，强制使用工厂方法
     private BlockState(Block block, Map<IProperty<?>, Comparable<?>> properties) {
         this.block = block;
         this.storage = Collections.unmodifiableMap(new HashMap<>(properties));
     }
 
-    // 1. 核心工厂方法：接受任意 Block 子类，返回对应泛型的 BlockState
     public static <B extends Block> BlockState of(B block) {
         return new BlockState(block, Collections.emptyMap());
     }
 
-    // 内部用于创建带属性的 State
     public static <B extends Block> BlockState of(B block, Map<IProperty<?>, Comparable<?>> props) {
         return new BlockState(block, props);
     }
