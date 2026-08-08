@@ -18,7 +18,7 @@ public class OverlayStrategy {
         mask2 |= (check(world, worldX, checkY, worldZ - 1) ? 1 : 0) << 3;
 
         if (mask2 == 15) {
-            if (mask1 == 0) {return "overlay/overlay_g_g";}
+            if (mask1 == 0) {return null;}
             if (mask1 == 15) {return "overlay/overlay_d_d";}
 
             if ((mask1 & 0b0111) == 0b0111) {return "overlay/overlay_f_d";}
