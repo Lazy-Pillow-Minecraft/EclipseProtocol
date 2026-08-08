@@ -14,10 +14,14 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
+import io.github.EclProtocol.blocks.Block;
 import io.github.EclProtocol.chunks.Chunk;
 import io.github.EclProtocol.chunks.ChunkColumn;
 import io.github.EclProtocol.client.ChunkMeshBuilder;
 import io.github.EclProtocol.client.MainShader;
+import io.github.EclProtocol.init.Blocks;
+import io.github.EclProtocol.init.Items;
+import io.github.EclProtocol.items.Item;
 import io.github.EclProtocol.util.OverlayStrategy;
 import io.github.EclProtocol.util.math.Direction6;
 import io.github.EclProtocol.util.math.Int2Pos;
@@ -56,15 +60,34 @@ public class Main extends ApplicationAdapter implements InputProcessor {
     private float yaw = 0f;
     private float pitch = 0f;
 
+    public interface ReadyCallback {
+        void onReady();
+    }
+
+    private static ReadyCallback callback;
+
+    public static void setCallback(ReadyCallback callback) {
+        Main.callback = callback;
+    }
+
     @Override
     public boolean touchCancelled(int screenX, int screenY, int pointer, int button) {
         return false;
     }
 
+    @SuppressWarnings("unused")
     @Override
     public void create() {
         shapeRenderer = new com.badlogic.gdx.graphics.glutils.ShapeRenderer();
         startBakerThread();
+
+        System.out.println("Initializing Blocks and Items...");
+        Block block = Blocks.AIR;// Blocks 類的靜態初始化
+        Item test = Items.TEST;// Items 類的靜態初始化
+
+        if (Main.callback != null) {
+            Main.callback.onReady();
+        }
     }
 
     @Override

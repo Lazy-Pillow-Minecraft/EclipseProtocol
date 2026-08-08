@@ -1,6 +1,7 @@
 package io.github.EclProtocol.registry;
 
 import io.github.EclProtocol.blocks.Block;
+import io.github.EclProtocol.items.Item;
 import io.github.EclProtocol.util.GameID;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,6 +36,27 @@ public class BlockRegistry {
         return register(GameID.createID(id), block);
     }
 
+    /**
+     * 一次性註冊方塊和對應的物品，它們共用同一個 GameID。
+     *
+     * @param <B> 方塊類型
+     * @param <I> 物品類型
+     * @param id 註冊用的 ID
+     * @param block 方塊實例
+     * @param item 物品實例
+     * @return 返回方塊實例
+     */
+    public static <B extends Block, I extends Item> B registerWithItem(GameID id, B block, I item) {
+        register(id, block);
+        ItemRegistry.register(id, item);
+
+        return block;
+    }
+
+    public static <B extends Block, I extends Item> B registerWithItemSelf(String id, B block, I item) {
+        return registerWithItem(GameID.createID(id), block, item);
+    }
+
     public static Block getBlock(GameID id) {
         return REGISTRY_MAP.get(id);
     }
@@ -42,6 +64,10 @@ public class BlockRegistry {
     public static Block getById(int id) {
         if (id < 0 || id >= REGISTRY_LIST.size()) return null;
         return REGISTRY_LIST.get(id);
+    }
+
+    public static Map<GameID, Block> getMap() {
+        return REGISTRY_MAP;
     }
 
     private BlockRegistry() {}
